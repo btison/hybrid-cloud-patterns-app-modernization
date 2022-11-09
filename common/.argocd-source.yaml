@@ -1,7 +1,0 @@
-helm:
-  global:
-    options:
-      syncPolicy: Automatic
-
-      useCSV: "False"
-      installPlanApproval: Automatic
