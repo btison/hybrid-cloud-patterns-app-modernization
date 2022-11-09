@@ -1,0 +1,11 @@
+---
+global:
+  pattern: app-modernization
+
+  options:
+    useCSV: false
+    syncPolicy: Automatic
+    installPlanApproval: Automatic
+
+main:
+  clusterGroupName: hub
