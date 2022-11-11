@@ -46,15 +46,15 @@ clusterGroup:
     #  timeout: 234
     #  # verbosity: "-v"
 
-  managedClusterGroups:
-    region-one:
-      name: region-one
-      helmOverrides:
-      - name: clusterGroup.isHubCluster
-        value: false
-      clusterSelector:
-        matchLabels:
-          clusterGroup: region-one
+  # managedClusterGroups:
+  #   region-one:
+  #     name: region-one
+  #     helmOverrides:
+  #     - name: clusterGroup.isHubCluster
+  #       value: false
+  #     clusterSelector:
+  #       matchLabels:
+  #         clusterGroup: region-one
 
 #  To have apps in multiple flavors, use namespaces and use helm overrides as appropriate
 #
