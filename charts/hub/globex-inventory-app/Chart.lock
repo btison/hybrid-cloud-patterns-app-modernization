@@ -1,0 +1,9 @@
+dependencies:
+- name: inventory-db
+  repository: https://globex-recommendation.github.io/globex-recommendation-helm
+  version: 0.1.0
+- name: inventory-service
+  repository: https://globex-recommendation.github.io/globex-recommendation-helm
+  version: 0.1.0
+digest: sha256:732337739f4d8ffce2b6dceda683c4b0c7bbe49436f2a50486b88a3da25c3c6f
+generated: "2022-11-12T11:41:49.597800738+01:00"

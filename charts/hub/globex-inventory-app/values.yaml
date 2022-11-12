@@ -1,0 +1,21 @@
+inventory-db:
+  image:
+    repository: quay.io/globex-recommendation/inventory-database
+    pullPolicy: IfNotPresent
+    tag: "0f2bc23"
+
+  pgsql:
+    user: inventory
+    password: inventory
+    database: inventory
+
+inventory-service:
+  image:
+    repository: quay.io/globex-recommendation/inventory
+    pullPolicy: IfNotPresent
+    tag: "6500629"
+
+  inventoryDb:
+    name: inventory-db
+    secret:
+      name: inventory-db

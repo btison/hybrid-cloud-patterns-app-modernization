@@ -10,6 +10,7 @@ clusterGroup:
   namespaces:
     - vault
     - golang-external-secrets
+    - globex
 
   subscriptions: {}
 
@@ -30,6 +31,11 @@ clusterGroup:
       project: hub
       path: common/golang-external-secrets
 
+    globex-inventory-app:
+      name: globex-inventory-app
+      namespace: globex
+      project: globex
+      path: charts/hub/globex-inventory-app
 
   #imperative:
     # NOTE: We *must* use lists and not hashes. As hashes lose ordering once parsed by helm
