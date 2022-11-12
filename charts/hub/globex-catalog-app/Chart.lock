@@ -1,0 +1,9 @@
+dependencies:
+- name: catalog-db
+  repository: https://globex-recommendation.github.io/globex-recommendation-helm
+  version: 0.1.0
+- name: catalog-service
+  repository: https://globex-recommendation.github.io/globex-recommendation-helm
+  version: 0.1.0
+digest: sha256:512a504870d150f014354f7fa86fe2f9139c720b7c28f5b3f7059edd75a7fd51
+generated: "2022-11-12T17:16:09.484720254+01:00"

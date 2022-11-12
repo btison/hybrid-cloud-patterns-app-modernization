@@ -1,0 +1,25 @@
+catalog-db:
+  image: 
+    repository: quay.io/globex-recommendation/catalog-database
+    pullPolicy: IfNotPresent
+    tag: "0f2bc23"
+
+  pgsql:
+    user: catalog
+    password: catalog
+    database: catalog
+
+catalog-service:
+  image:
+    repository: quay.io/globex-recommendation/catalog
+    pullPolicy: IfNotPresent
+    # Overrides the image tag whose default is the chart appVersion.
+    tag: "c434beb"
+
+  inventoryService:
+    name: inventory
+
+  catalogDb:
+    name: catalog-db
+    secret:
+      name: catalog-db
