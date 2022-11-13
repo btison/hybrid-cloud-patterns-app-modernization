@@ -1,0 +1,146 @@
+---
+# Source: globex-ui/charts/globex-ui/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: globex-ui
+  labels:
+    helm.sh/chart: globex-ui-0.1.0
+    app.kubernetes.io/name: globex-ui
+    app.kubernetes.io/instance: hub-globex-ui
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+---
+# Source: globex-ui/charts/globex-ui/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: globex-ui
+  labels:
+    helm.sh/chart: globex-ui-0.1.0
+    app.kubernetes.io/name: globex-ui
+    app.kubernetes.io/instance: hub-globex-ui
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 8080
+    protocol: TCP
+    targetPort: http
+  selector:
+    app.kubernetes.io/name: globex-ui
+    app.kubernetes.io/instance: hub-globex-ui
+---
+# Source: globex-ui/charts/globex-ui/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  annotations:
+    app.openshift.io/connects-to: |
+      [{"apiVersion":"apps/v1","kind":"Deployment","name":"catalog"},
+      {"apiVersion":"apps/v1","kind":"Deployment","name":"recommendation-engine"},
+      {"apiVersion":"apps/v1","kind":"Deployment","name":"activity-tracking"}]
+  labels:
+    helm.sh/chart: globex-ui-0.1.0
+    app.kubernetes.io/name: globex-ui
+    app.kubernetes.io/instance: hub-globex-ui
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+    app.openshift.io/runtime: nodejs
+  name: globex-ui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: globex-ui
+      app.kubernetes.io/instance: hub-globex-ui
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app.kubernetes.io/name: globex-ui
+        app.kubernetes.io/instance: hub-globex-ui
+    spec:
+      containers:
+        - image:  "quay.io/globex-recommendation/globex-recommendation-ui:9fedc9b"
+          imagePullPolicy: IfNotPresent
+          name: globex-ui
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 3
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+          resources:
+            limits:
+              cpu: 200m
+              memory: 256Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+          env:
+            - name: NODE_ENV
+              value: prod
+            - name: PORT
+              value: '8080'
+            - name: API_TRACK_USERACTIVITY
+              value: http://activity-tracking:8080/track
+            - name: API_GET_PAGINATED_PRODUCTS
+              value: http://catalog:8080/services/products
+            - name: API_GET_PRODUCT_DETAILS_BY_IDS
+              value: http://catalog:8080/services/product/list/
+            - name: API_CATALOG_RECOMMENDED_PRODUCT_IDS
+              value: http://recommendation-engine:8080/score/product
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+      serviceAccountName: globex-ui
+---
+# Source: globex-ui/charts/globex-ui/templates/route.yaml
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: globex-ui
+  labels:
+    helm.sh/chart: globex-ui-0.1.0
+    app.kubernetes.io/name: globex-ui
+    app.kubernetes.io/instance: hub-globex-ui
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  
+  port:
+    targetPort: http
+  to:
+    kind: Service
+    name: globex-ui
+    weight: 100
+  wildcardPolicy: None
+  tls:
+    insecureEdgeTerminationPolicy: Redirect
+    termination: edge

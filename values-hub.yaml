@@ -43,6 +43,12 @@ clusterGroup:
       project: globex
       path: charts/hub/globex-catalog-app
 
+    globex-ui:
+      name: globex-ui
+      namespace: globex
+      project: globex
+      path: charts/hub/globex-ui
+
   #imperative:
     # NOTE: We *must* use lists and not hashes. As hashes lose ordering once parsed by helm
     # The default schedule is every 10 minutes: imperative.schedule

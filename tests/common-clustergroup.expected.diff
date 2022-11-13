@@ -1,6 +1,6 @@
 --- tests/common-clustergroup-naked.expected.yaml
 +++ tests/common-clustergroup-normal.expected.yaml
-@@ -1,17 +1,176 @@
+@@ -1,17 +1,181 @@
  ---
 +# Source: pattern-clustergroup/templates/core/namespaces.yaml
 +apiVersion: v1
@@ -79,6 +79,11 @@
 +          name: globex-inventory-app
 +          namespace: globex
 +          path: charts/hub/globex-inventory-app
++          project: globex
++        globex-ui:
++          name: globex-ui
++          namespace: globex
++          path: charts/hub/globex-ui
 +          project: globex
 +        golang-external-secrets:
 +          name: golang-external-secrets
@@ -179,7 +184,7 @@
  # Source: pattern-clustergroup/templates/plumbing/argocd-super-role.yaml
  # WARNING: ONLY USE THIS FOR MANAGING CLUSTERS NOT FOR REGULAR USERS
  apiVersion: rbac.authorization.k8s.io/v1
-@@ -36,7 +195,7 @@
+@@ -36,7 +200,7 @@
  apiVersion: rbac.authorization.k8s.io/v1
  kind: ClusterRoleBinding
  metadata:
@@ -188,7 +193,7 @@
  roleRef:
    apiGroup: rbac.authorization.k8s.io
    kind: ClusterRole
-@@ -44,17 +203,424 @@
+@@ -44,17 +208,470 @@
  subjects:
    - kind: ServiceAccount
      # This is the {ArgoCD.name}-argocd-application-controller
@@ -529,6 +534,52 @@
 +apiVersion: argoproj.io/v1alpha1
 +kind: Application
 +metadata:
++  name: globex-ui
++  namespace: mypattern-hub
++  finalizers:
++  - resources-finalizer.argocd.argoproj.io/foreground
++spec:
++  destination:
++    name: in-cluster
++    namespace: globex
++  project: globex
++  source:
++    repoURL: https://github.com/pattern-clone/mypattern
++    targetRevision: main
++    path: charts/hub/globex-ui
++    helm:
++      ignoreMissingValueFiles: true
++      valueFiles:
++      - "/values-global.yaml"
++      - "/values-hub.yaml"
++      # Watch the progress of https://issues.redhat.com/browse/GITOPS-891 and update accordingly
++      parameters:
++        - name: global.repoURL
++          value: $ARGOCD_APP_SOURCE_REPO_URL
++        - name: global.targetRevision
++          value: $ARGOCD_APP_SOURCE_TARGET_REVISION
++        - name: global.namespace
++          value: $ARGOCD_APP_NAMESPACE
++        - name: global.pattern
++          value: mypattern
++        - name: global.clusterDomain
++          value: region.example.com
++        - name: global.clusterVersion
++          value: ""
++        - name: global.clusterPlatform
++          value: ""
++        - name: global.hubClusterDomain
++          value: apps.hub.example.com
++        - name: global.localClusterDomain
++          value: apps.region.example.com
++  syncPolicy:
++    automated: {}
++    #  selfHeal: true
++---
++# Source: pattern-clustergroup/templates/plumbing/applications.yaml
++apiVersion: argoproj.io/v1alpha1
++kind: Application
++metadata:
 +  name: golang-external-secrets
 +  namespace: mypattern-hub
 +  finalizers:
@@ -619,7 +670,7 @@
  ---
  # Source: pattern-clustergroup/templates/plumbing/argocd.yaml
  apiVersion: argoproj.io/v1alpha1
-@@ -64,8 +630,8 @@
+@@ -64,8 +681,8 @@
    - argoproj.io/finalizer
    # Changing the name affects the ClusterRoleBinding, the generated secret,
    # route URL, and argocd.argoproj.io/managed-by annotations
@@ -630,7 +681,7 @@
    annotations:
      argocd.argoproj.io/compare-options: IgnoreExtraneous
  spec:
-@@ -90,15 +656,15 @@
+@@ -90,15 +707,15 @@
          command: ["/bin/bash", "-c"]
          args: ["helm template . --name-template ${ARGOCD_APP_NAME:0:52}
              -f $(git rev-parse --show-toplevel)/values-global.yaml
@@ -652,7 +703,7 @@
              --post-renderer ./kustomize"]
    applicationSet:
      resources:
-@@ -173,12 +739,42 @@
+@@ -173,12 +790,42 @@
  apiVersion: console.openshift.io/v1
  kind: ConsoleLink
  metadata:
