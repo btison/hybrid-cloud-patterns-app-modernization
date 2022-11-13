@@ -1,0 +1,6 @@
+dependencies:
+- name: activity-tracking
+  repository: https://globex-recommendation.github.io/globex-recommendation-helm
+  version: 0.1.0
+digest: sha256:9d731711bae14c30e6be18ec3acfb08862e5ba14335414173c08e7d40c23792e
+generated: "2022-11-13T18:00:13.376514194+01:00"

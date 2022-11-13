@@ -65,6 +65,11 @@ data:
   values.yaml: |
     clusterGroup:
       applications:
+        activity-tracking:
+          name: globex-activity-tracking
+          namespace: globex
+          path: charts/hub/globex-activity-tracking
+          project: globex
         globex-catalog-app:
           name: globex-catalog-app
           namespace: globex
@@ -442,6 +447,52 @@ spec:
   sourceRepos:
   - '*'
 status: {}
+---
+# Source: pattern-clustergroup/templates/plumbing/applications.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: globex-activity-tracking
+  namespace: mypattern-hub
+  finalizers:
+  - resources-finalizer.argocd.argoproj.io/foreground
+spec:
+  destination:
+    name: in-cluster
+    namespace: globex
+  project: globex
+  source:
+    repoURL: https://github.com/pattern-clone/mypattern
+    targetRevision: main
+    path: charts/hub/globex-activity-tracking
+    helm:
+      ignoreMissingValueFiles: true
+      valueFiles:
+      - "/values-global.yaml"
+      - "/values-hub.yaml"
+      # Watch the progress of https://issues.redhat.com/browse/GITOPS-891 and update accordingly
+      parameters:
+        - name: global.repoURL
+          value: $ARGOCD_APP_SOURCE_REPO_URL
+        - name: global.targetRevision
+          value: $ARGOCD_APP_SOURCE_TARGET_REVISION
+        - name: global.namespace
+          value: $ARGOCD_APP_NAMESPACE
+        - name: global.pattern
+          value: mypattern
+        - name: global.clusterDomain
+          value: region.example.com
+        - name: global.clusterVersion
+          value: ""
+        - name: global.clusterPlatform
+          value: ""
+        - name: global.hubClusterDomain
+          value: apps.hub.example.com
+        - name: global.localClusterDomain
+          value: apps.region.example.com
+  syncPolicy:
+    automated: {}
+    #  selfHeal: true
 ---
 # Source: pattern-clustergroup/templates/plumbing/applications.yaml
 apiVersion: argoproj.io/v1alpha1

@@ -1,0 +1,14 @@
+activity-tracking:
+  image:
+    repository: quay.io/globex-recommendation/activity-tracking-service
+    pullPolicy: IfNotPresent
+    # Overrides the image tag whose default is the chart appVersion.
+    tag: "86e6b56"
+
+  kafka:
+    bootstrapServer: "{{ .kafkaBootstrapServer }}"
+    trackingEventTopic: globex.tracking
+    securityProtocol: SASL_SSL
+    saslMechanism: PLAIN
+    userId: "{{ .kafkaUserId }}"
+    password: "{{ .kafkaPassword }}"

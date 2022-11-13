@@ -49,6 +49,12 @@ clusterGroup:
       project: globex
       path: charts/hub/globex-ui
 
+    activity-tracking:
+      name: globex-activity-tracking
+      namespace: globex
+      project: globex
+      path: charts/hub/globex-activity-tracking
+
   #imperative:
     # NOTE: We *must* use lists and not hashes. As hashes lose ordering once parsed by helm
     # The default schedule is every 10 minutes: imperative.schedule

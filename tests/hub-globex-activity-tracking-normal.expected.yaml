@@ -1,0 +1,160 @@
+---
+# Source: activity-tracking/charts/activity-tracking/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: activity-tracking
+  labels:
+    helm.sh/chart: activity-tracking-0.1.0
+    app.kubernetes.io/name: activity-tracking
+    app.kubernetes.io/instance: hub-globex-activity-tracking
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+---
+# Source: activity-tracking/charts/activity-tracking/templates/secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: activity-tracking
+  labels:
+    helm.sh/chart: activity-tracking-0.1.0
+    app.kubernetes.io/name: activity-tracking
+    app.kubernetes.io/instance: hub-globex-activity-tracking
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+type: "Opaque"
+stringData:
+  application.properties: |-
+    mp.messaging.outgoing.tracking-event.bootstrap.servers={{ .kafkaBootstrapServer }}
+    mp.messaging.outgoing.tracking-event.topic=globex.tracking
+
+    
+    mp.messaging.connector.smallrye-kafka.security.protocol=SASL_SSL
+    
+    
+    mp.messaging.connector.smallrye-kafka.sasl.mechanism=PLAIN
+    
+
+    
+    mp.messaging.connector.smallrye-kafka.sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required \
+      username="{{ .kafkaUserId }}" \
+      password="{{ .kafkaPassword }}" ;
+---
+# Source: activity-tracking/charts/activity-tracking/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: activity-tracking
+  labels:
+    helm.sh/chart: activity-tracking-0.1.0
+    app.kubernetes.io/name: activity-tracking
+    app.kubernetes.io/instance: hub-globex-activity-tracking
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: activity-tracking
+    app.kubernetes.io/instance: hub-globex-activity-tracking
+---
+# Source: activity-tracking/charts/activity-tracking/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: activity-tracking
+  labels:
+    helm.sh/chart: activity-tracking-0.1.0
+    app.kubernetes.io/name: activity-tracking
+    app.kubernetes.io/instance: hub-globex-activity-tracking
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+    app.openshift.io/runtime: quarkus
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: activity-tracking
+      app.kubernetes.io/instance: hub-globex-activity-tracking
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: activity-tracking
+        app.kubernetes.io/instance: hub-globex-activity-tracking
+    spec:
+      serviceAccountName: activity-tracking
+      containers:
+        - name: activity-tracking
+          image: "quay.io/globex-recommendation/activity-tracking-service:86e6b56"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /q/health/live
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 3
+          readinessProbe:
+            httpGet:
+              path: /q/health/ready
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+          resources:
+            limits:
+              cpu: 100m
+              memory: 250Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+          volumeMounts:
+            - mountPath: /deployments/config
+              name: config
+      volumes:
+        - name: config
+          secret:
+            secretName: activity-tracking
+---
+# Source: activity-tracking/templates/activity-tracking-externalsecret.yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: activity-tracking-externalsecret
+spec:
+  secretStoreRef:
+    name: vault-backend
+    kind: ClusterSecretStore
+
+  target:
+    name: activity-tracking
+    template:
+      engineVersion: v2
+      templateFrom:
+      - secret:
+          # name of the configmap to pull in
+          name: activity-tracking
+          # here you define the keys that should be used as template
+          items:
+          - key: application.properties
+  data:
+  - secretKey: kafkaBootstrapServer
+    remoteRef:
+      key: secret/data/hub/kafka
+      property: bootstrapserver
+  - secretKey: kafkaUserId
+    remoteRef:
+      key: secret/data/hub/kafka
+      property: userid
+  - secretKey: kafkaPassword
+    remoteRef:
+      key: secret/data/hub/kafka
+      property: password
