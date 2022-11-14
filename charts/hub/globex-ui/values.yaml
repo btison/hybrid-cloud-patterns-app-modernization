@@ -3,7 +3,7 @@ globex-ui:
     repository: quay.io/globex-recommendation/globex-recommendation-ui
     pullPolicy: IfNotPresent
     # Overrides the image tag whose default is the chart appVersion.
-    tag: "9fedc9b"
+    tag: "68549ea"
 
   route:
     enabled: true

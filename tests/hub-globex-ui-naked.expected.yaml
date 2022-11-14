@@ -66,7 +66,7 @@ spec:
         app.kubernetes.io/instance: hub-globex-ui
     spec:
       containers:
-        - image:  "quay.io/globex-recommendation/globex-recommendation-ui:9fedc9b"
+        - image:  "quay.io/globex-recommendation/globex-recommendation-ui:68549ea"
           imagePullPolicy: IfNotPresent
           name: globex-ui
           ports:
@@ -76,7 +76,7 @@ spec:
           livenessProbe:
             failureThreshold: 3
             httpGet:
-              path: /
+              path: /health
               port: 8080
               scheme: HTTP
             initialDelaySeconds: 30
@@ -85,7 +85,7 @@ spec:
           readinessProbe:
             failureThreshold: 3
             httpGet:
-              path: /
+              path: /health
               port: 8080
               scheme: HTTP
             initialDelaySeconds: 5
