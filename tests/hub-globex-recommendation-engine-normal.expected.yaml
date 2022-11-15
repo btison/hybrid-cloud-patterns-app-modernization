@@ -99,7 +99,7 @@ spec:
       serviceAccountName: recommendation-engine
       containers:
         - name: recommendation-engine
-          image: "quay.io/globex-recommendation/recommendation-engine:3ee6286"
+          image: "quay.io/globex-recommendation/recommendation-engine:cd6b12e"
           imagePullPolicy: IfNotPresent
           ports:
             - name: http

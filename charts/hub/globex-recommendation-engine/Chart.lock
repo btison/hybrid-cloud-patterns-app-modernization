@@ -3,4 +3,4 @@ dependencies:
   repository: https://globex-recommendation.github.io/globex-recommendation-helm
   version: 0.1.0
 digest: sha256:039270e710e9bf69741c2d6930cf1f11c34be30d8f78f6cf0c3b82b7c7223ca4
-generated: "2022-11-13T20:04:38.834334189+01:00"
+generated: "2022-11-15T12:37:29.351292528+01:00"
