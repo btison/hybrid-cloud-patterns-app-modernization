@@ -111,7 +111,7 @@ spec:
             timeoutSeconds: 3
           resources:
             limits:
-              cpu: 100m
+              cpu: 250m
               memory: 250Mi
             requests:
               cpu: 100m
@@ -119,6 +119,14 @@ spec:
           volumeMounts:
             - mountPath: /deployments/config
               name: config
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
       volumes:
         - name: config
           secret:
