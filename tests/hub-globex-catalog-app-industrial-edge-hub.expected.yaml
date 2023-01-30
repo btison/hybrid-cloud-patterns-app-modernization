@@ -1,0 +1,256 @@
+---
+# Source: catalog-app/charts/catalog-db/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: catalog-db
+  labels:
+    helm.sh/chart: catalog-db-0.1.0
+    app.kubernetes.io/name: catalog-db
+    app.kubernetes.io/instance: hub-globex-catalog-app
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+---
+# Source: catalog-app/charts/catalog-service/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: catalog
+  labels:
+    helm.sh/chart: catalog-service-0.1.0
+    app.kubernetes.io/name: catalog
+    app.kubernetes.io/instance: hub-globex-catalog-app
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+---
+# Source: catalog-app/charts/catalog-db/templates/secret.yaml
+kind: Secret
+apiVersion: v1
+metadata:
+  name: catalog-db
+  labels:
+    helm.sh/chart: catalog-db-0.1.0
+    app.kubernetes.io/name: catalog-db
+    app.kubernetes.io/instance: hub-globex-catalog-app
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+stringData:
+  database-user: catalog
+  database-password: catalog
+  database-name: catalog
+type: Opaque
+---
+# Source: catalog-app/charts/catalog-db/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: catalog-db
+  labels:
+    helm.sh/chart: catalog-db-0.1.0
+    app.kubernetes.io/name: catalog-db
+    app.kubernetes.io/instance: hub-globex-catalog-app
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  ports:
+    - name: postgresql
+      protocol: TCP
+      port: 5432
+      targetPort: postgresql
+  selector:
+    app.kubernetes.io/name: catalog-db
+    app.kubernetes.io/instance: hub-globex-catalog-app
+---
+# Source: catalog-app/charts/catalog-service/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+metadata:
+  name: catalog
+  labels:
+    helm.sh/chart: catalog-service-0.1.0
+    app.kubernetes.io/name: catalog
+    app.kubernetes.io/instance: hub-globex-catalog-app
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  ports:
+  - name: http
+    port: 8080
+    protocol: TCP
+    targetPort: http
+  selector:
+    app.kubernetes.io/name: catalog
+    app.kubernetes.io/instance: hub-globex-catalog-app
+---
+# Source: catalog-app/charts/catalog-db/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: catalog-db
+  labels:
+    helm.sh/chart: catalog-db-0.1.0
+    app.kubernetes.io/name: catalog-db
+    app.kubernetes.io/instance: hub-globex-catalog-app
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+    app.openshift.io/runtime: postgresql
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: catalog-db
+      app.kubernetes.io/instance: hub-globex-catalog-app
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: catalog-db
+        app.kubernetes.io/instance: hub-globex-catalog-app
+    spec:
+      containers:
+        - name: catalog-db
+          image: "quay.io/globex-recommendation/catalog-database:0f2bc23"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: postgresql
+              containerPort: 5432
+              protocol: TCP
+          livenessProbe:
+            initialDelaySeconds: 5
+            tcpSocket:
+              port: 5432
+            timeoutSeconds: 1
+          readinessProbe:
+            exec:
+              command:
+              - /bin/sh
+              - -i
+              - -c
+              - psql -h 127.0.0.1 -U $POSTGRESQL_USER -q -d $POSTGRESQL_DATABASE -c 'SELECT 1'
+            initialDelaySeconds: 5
+            timeoutSeconds: 1
+          resources:
+            limits:
+              cpu: 250m
+              memory: 256Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+          env:
+            - name: POSTGRESQL_USER
+              valueFrom:
+                secretKeyRef:
+                  key: database-user
+                  name: catalog-db
+            - name: POSTGRESQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: database-password
+                  name: catalog-db
+            - name: POSTGRESQL_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  key: database-name
+                  name: catalog-db
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+      serviceAccountName: catalog-db
+---
+# Source: catalog-app/charts/catalog-service/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  annotations:
+    app.openshift.io/connects-to: |
+      [{"apiVersion":"apps/v1","kind":"Deployment","name":"inventory"},{"apiVersion":"apps/v1","kind":"Deployment","name":"catalog-db"}]
+  labels:
+    helm.sh/chart: catalog-service-0.1.0
+    app.kubernetes.io/name: catalog
+    app.kubernetes.io/instance: hub-globex-catalog-app
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+    app.openshift.io/runtime: spring
+  name: catalog
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: catalog
+      app.kubernetes.io/instance: hub-globex-catalog-app
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: catalog
+        app.kubernetes.io/instance: hub-globex-catalog-app
+    spec:
+      containers:
+        - name: catalog-service
+          image:  "quay.io/globex-recommendation/catalog:c434beb"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /actuator/health
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 3
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /actuator/health
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+          resources:
+            limits:
+              cpu: 200m
+              memory: 768Mi
+            requests:
+              cpu: 100m
+              memory: 256Mi
+          env:
+            - name: JAVA_OPTIONS
+              value: -Dspring.profiles.active=openshift
+            - name: POSTGRESQL_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: catalog-db
+                  key: database-name 
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://catalog-db:5432/${POSTGRESQL_DATABASE}
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: catalog-db
+                  key: database-user
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: catalog-db
+                  key: database-password
+            - name: INVENTORY_URL
+              value: inventory:8080
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+      serviceAccountName: catalog

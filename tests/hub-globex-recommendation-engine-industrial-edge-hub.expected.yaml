@@ -1,0 +1,178 @@
+---
+# Source: recommendation-engine/charts/recommendation-engine/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: recommendation-engine
+  labels:
+    helm.sh/chart: recommendation-engine-0.1.0
+    app.kubernetes.io/name: recommendation-engine
+    app.kubernetes.io/instance: hub-globex-recommendation-engine
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+---
+# Source: recommendation-engine/charts/recommendation-engine/templates/secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: recommendation-engine
+  labels:
+    helm.sh/chart: recommendation-engine-0.1.0
+    app.kubernetes.io/name: recommendation-engine
+    app.kubernetes.io/instance: hub-globex-recommendation-engine
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+type: "Opaque"
+stringData:
+  application.properties: |-
+    quarkus.kafka-streams.bootstrap-servers={{ .kafkaBootstrapServer }}
+
+    
+    quarkus.kafka-streams.security.protocol=SASL_SSL
+    
+    
+    quarkus.kafka-streams.sasl.mechanism=PLAIN
+    
+
+    
+    quarkus.kafka-streams.sasl.jaas-config=org.apache.kafka.common.security.plain.PlainLoginModule required \
+      username="{{ .kafkaUserId }}" \
+      password="{{ .kafkaPassword }}" ;
+    
+
+    quarkus.kafka-streams.application-id=globex.recommendation
+
+    quarkus.kafka-streams.topics=globex.tracking
+
+    quarkus.kafka-streams.commit.interval.ms=10000
+
+    kafka-streams.replication.factor=1
+
+    tracking-event-topic=globex.tracking
+---
+# Source: recommendation-engine/charts/recommendation-engine/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: recommendation-engine
+  labels:
+    helm.sh/chart: recommendation-engine-0.1.0
+    app.kubernetes.io/name: recommendation-engine
+    app.kubernetes.io/instance: hub-globex-recommendation-engine
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: recommendation-engine
+    app.kubernetes.io/instance: hub-globex-recommendation-engine
+---
+# Source: recommendation-engine/charts/recommendation-engine/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: recommendation-engine
+  labels:
+    helm.sh/chart: recommendation-engine-0.1.0
+    app.kubernetes.io/name: recommendation-engine
+    app.kubernetes.io/instance: hub-globex-recommendation-engine
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+    app.openshift.io/runtime: quarkus
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: recommendation-engine
+      app.kubernetes.io/instance: hub-globex-recommendation-engine
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: recommendation-engine
+        app.kubernetes.io/instance: hub-globex-recommendation-engine
+    spec:
+      serviceAccountName: recommendation-engine
+      containers:
+        - name: recommendation-engine
+          image: "quay.io/globex-recommendation/recommendation-engine:cd6b12e"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /q/health/live
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 3
+          readinessProbe:
+            httpGet:
+              path: /q/health/ready
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+          resources:
+            limits:
+              cpu: 250m
+              memory: 250Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+          volumeMounts:
+            - mountPath: /deployments/config
+              name: config
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+      volumes:
+        - name: config
+          secret:
+            secretName: recommendation-engine
+---
+# Source: recommendation-engine/templates/recommendation-engine-externalsecret.yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: recommendation-engine-externalsecret
+spec:
+  secretStoreRef:
+    name: vault-backend
+    kind: ClusterSecretStore
+
+  target:
+    name: recommendation-engine
+    template:
+      engineVersion: v2
+      templateFrom:
+      - secret:
+          # name of the configmap to pull in
+          name: recommendation-engine
+          # here you define the keys that should be used as template
+          items:
+          - key: application.properties
+  data:
+  - secretKey: kafkaBootstrapServer
+    remoteRef:
+      key: secret/data/hub/kafka
+      property: bootstrapserver
+  - secretKey: kafkaUserId
+    remoteRef:
+      key: secret/data/hub/kafka
+      property: userid
+  - secretKey: kafkaPassword
+    remoteRef:
+      key: secret/data/hub/kafka
+      property: password
