@@ -27,7 +27,3 @@ post-install: ## Post-install tasks - vault init and load-secrets
 test:
 	make -f common/Makefile PATTERN_OPTS="-f values-global.yaml -f values-hub.yaml" test
 
-.PHONY: kubeconform
-KUBECONFORM_SKIP=-skip 'CustomResourceDefinition,Integration,BobbycarZone,Infinispan,Kafka,KafkaBridge,KafkaTopic,ActiveMQArtemis,EventListener,TriggerBinding,TriggerTemplate,Pipeline,Trigger,Task,ApiServerSource,Service,KafkaSource,Broker'
-kubeconform:
-	make -f common/Makefile KUBECONFORM_SKIP="$(KUBECONFORM_SKIP)" kubeconform
