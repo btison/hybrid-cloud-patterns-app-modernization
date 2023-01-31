@@ -1,0 +1,6 @@
+dependencies:
+- name: kafdrop
+  repository: https://globex-recommendation.github.io/globex-recommendation-helm
+  version: 0.1.0
+digest: sha256:29df070d803c6176c38e6c1d22b7b99bd7731a479dea093c68019546c6ec7a94
+generated: "2023-01-31T18:34:07.980400328+01:00"

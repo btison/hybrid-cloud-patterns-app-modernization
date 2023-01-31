@@ -1,0 +1,9 @@
+kafdrop:
+  fullnameOverride: "kafdrop"
+
+  kafka:
+    bootstrapServer: "{{ .kafkaBootstrapServer }}"
+    securityProtocol: SASL_SSL
+    saslMechanism: PLAIN
+    userId: "{{ .kafkaUserId }}"
+    password: "{{ .kafkaPassword }}"
