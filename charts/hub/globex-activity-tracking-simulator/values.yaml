@@ -1,0 +1,6 @@
+activity-tracking-simulator:
+  route:
+    enabled: true
+
+  activityTrackingService:
+    name: activity-tracking

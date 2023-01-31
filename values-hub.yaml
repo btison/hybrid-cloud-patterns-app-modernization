@@ -64,6 +64,12 @@ clusterGroup:
       project: globex
       path: charts/hub/globex-order-placement
 
+    activity-tracking-simulator:
+      name: globex-activity-tracking-simulator
+      namespace: globex
+      project: globex
+      path: charts/hub/globex-activity-tracking-simulator
+
     kafdrop:
       name: kafdrop
       namespace: globex

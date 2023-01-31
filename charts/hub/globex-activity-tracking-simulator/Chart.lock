@@ -1,0 +1,6 @@
+dependencies:
+- name: activity-tracking-simulator
+  repository: https://globex-recommendation.github.io/globex-recommendation-helm
+  version: 0.1.0
+digest: sha256:c4922b5d7800e3947e3f2f419b81fa241da51b389ca1ff5b0e26ce52eb7ce47d
+generated: "2023-01-31T20:15:04.585790455+01:00"
