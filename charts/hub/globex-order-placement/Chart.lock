@@ -1,0 +1,6 @@
+dependencies:
+- name: order-placement
+  repository: https://globex-recommendation.github.io/globex-recommendation-helm
+  version: 0.1.0
+digest: sha256:fee2dafaa94d40ff3993863e3e355fa312663aa894e3c76e14ad50e37e9ffdd2
+generated: "2023-01-31T19:49:09.494112017+01:00"

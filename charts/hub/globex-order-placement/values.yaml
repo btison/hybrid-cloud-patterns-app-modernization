@@ -1,0 +1,8 @@
+order-placement:
+  kafka:
+    bootstrapServer: "{{ .kafkaBootstrapServer }}"
+    trackingEventTopic: globex.tracking
+    securityProtocol: SASL_SSL
+    saslMechanism: PLAIN
+    userId: "{{ .kafkaUserId }}"
+    password: "{{ .kafkaPassword }}"

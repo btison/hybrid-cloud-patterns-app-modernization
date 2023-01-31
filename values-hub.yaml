@@ -58,6 +58,12 @@ clusterGroup:
       project: globex
       path: charts/hub/globex-recommendation-engine
 
+    order-placement:
+      name: globex-order-placement
+      namespace: globex
+      project: globex
+      path: charts/hub/globex-order-placement
+
     kafdrop:
       name: kafdrop
       namespace: globex
