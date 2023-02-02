@@ -1,0 +1,170 @@
+---
+# Source: order-placement/charts/order-placement/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: order-placement
+  labels:
+    helm.sh/chart: order-placement-0.1.0
+    app.kubernetes.io/name: order-placement
+    app.kubernetes.io/part-of: hub-globex-order-placement
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+---
+# Source: order-placement/charts/order-placement/templates/secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: order-placement
+  labels:
+    helm.sh/chart: order-placement-0.1.0
+    app.kubernetes.io/name: order-placement
+    app.kubernetes.io/part-of: hub-globex-order-placement
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+type: "Opaque"
+stringData:
+  application.properties: |-
+    mp.messaging.outgoing.order-event.bootstrap.servers={{ .kafkaBootstrapServer }}
+    mp.messaging.outgoing.order-event.topic=globex.orders
+
+    
+    mp.messaging.connector.smallrye-kafka.security.protocol=SASL_SSL
+    
+    
+    mp.messaging.connector.smallrye-kafka.sasl.mechanism=PLAIN
+    
+
+    
+    mp.messaging.connector.smallrye-kafka.sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required \
+      username="{{ .kafkaUserId }}" \
+      password="{{ .kafkaPassword }}" ;
+---
+# Source: order-placement/charts/order-placement/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: order-placement
+  labels:
+    helm.sh/chart: order-placement-0.1.0
+    app.kubernetes.io/name: order-placement
+    app.kubernetes.io/part-of: hub-globex-order-placement
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 8080
+    protocol: TCP
+    targetPort: http
+  selector:
+    app.kubernetes.io/name: order-placement
+    app.kubernetes.io/part-of: hub-globex-order-placement
+---
+# Source: order-placement/charts/order-placement/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-placement
+  labels:
+    helm.sh/chart: order-placement-0.1.0
+    app.kubernetes.io/name: order-placement
+    app.kubernetes.io/part-of: hub-globex-order-placement
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+    app.openshift.io/runtime: quarkus
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: order-placement
+      app.kubernetes.io/part-of: hub-globex-order-placement
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: order-placement
+        app.kubernetes.io/part-of: hub-globex-order-placement
+    spec:
+      serviceAccountName: order-placement
+      securityContext:
+        {}
+      containers:
+        - name: order-placement
+          image: "quay.io/globex-recommendation/order-placement-service:cc41ccf"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /q/health/live
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 3
+          readinessProbe:
+            httpGet:
+              path: /q/health/ready
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+          resources:
+            limits:
+              cpu: 100m
+              memory: 250Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+          volumeMounts:
+            - mountPath: /deployments/config
+              name: config
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+      volumes:
+        - name: config
+          secret:
+            secretName: order-placement
+---
+# Source: order-placement/templates/order-placement-externalsecret.yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: order-placement-externalsecret
+spec:
+  secretStoreRef:
+    name: vault-backend
+    kind: ClusterSecretStore
+
+  target:
+    name: order-placement
+    template:
+      engineVersion: v2
+      templateFrom:
+      - secret:
+          # name of the configmap to pull in
+          name: order-placement
+          # here you define the keys that should be used as template
+          items:
+          - key: application.properties
+  data:
+  - secretKey: kafkaBootstrapServer
+    remoteRef:
+      key: secret/data/hub/kafka
+      property: bootstrapserver
+  - secretKey: kafkaUserId
+    remoteRef:
+      key: secret/data/hub/kafka
+      property: userid
+  - secretKey: kafkaPassword
+    remoteRef:
+      key: secret/data/hub/kafka
+      property: password

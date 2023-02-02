@@ -1,0 +1,217 @@
+---
+# Source: activity-tracking/charts/kafdrop/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kafdrop
+  labels:
+    helm.sh/chart: kafdrop-0.1.0
+    app.kubernetes.io/name: kafdrop
+    app.kubernetes.io/instance: hub-kafdrop
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: kafdrop
+---
+# Source: activity-tracking/charts/kafdrop/templates/secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: kafdrop
+  labels:
+    helm.sh/chart: kafdrop-0.1.0
+    app.kubernetes.io/name: kafdrop
+    app.kubernetes.io/instance: hub-kafdrop
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: kafdrop
+type: "Opaque"
+stringData:
+  kafkaBootstrapServer: "{{ .kafkaBootstrapServer }}"
+  kafka.properties: |-
+    security.protocol=SASL_SSL
+    sasl.mechanism=PLAIN
+    sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required \
+        username="{{ .kafkaUserId }}" \
+        password="{{ .kafkaPassword }}";
+---
+# Source: activity-tracking/charts/kafdrop/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafdrop
+  labels:
+    helm.sh/chart: kafdrop-0.1.0
+    app.kubernetes.io/name: kafdrop
+    app.kubernetes.io/instance: hub-kafdrop
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: kafdrop
+spec:
+  type: ClusterIP
+  ports:
+    - port: 9000
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: kafdrop
+    app.kubernetes.io/instance: hub-kafdrop
+---
+# Source: activity-tracking/charts/kafdrop/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafdrop
+  labels:
+    helm.sh/chart: kafdrop-0.1.0
+    app.kubernetes.io/name: kafdrop
+    app.kubernetes.io/instance: hub-kafdrop
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: kafdrop
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kafdrop
+      app.kubernetes.io/instance: hub-kafdrop
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: kafdrop
+        app.kubernetes.io/instance: hub-kafdrop
+    spec:
+      serviceAccountName: kafdrop
+      serviceAccount: kafdrop
+      securityContext:
+        {}
+      containers:
+        - name: kafdrop
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+              - ALL
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+          image: "obsidiandynamics/kafdrop:latest"
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: KAFKA_BROKERCONNECT
+              valueFrom:
+                secretKeyRef:
+                  key: kafkaBootstrapServer
+                  name: kafdrop
+            - name: KAFKA_PROPERTIES
+            - name: KAFKA_TRUSTSTORE
+            - name: KAFKA_KEYSTORE
+            - name: JVM_OPTS
+            - name: JMX_PORT
+              value: '8686'
+            - name: HOST
+            - name: SERVER_SERVLET_CONTEXTPATH
+              value: /
+            - name: KAFKA_PROPERTIES_FILE
+              value: /config/kafka.properties
+            - name: KAFKA_TRUSTSTORE_FILE
+            - name: KAFKA_KEYSTORE_FILE
+            - name: SERVER_PORT
+              value: '9000'
+            - name: CMD_ARGS
+            - name: SCHEMAREGISTRY_CONNECT
+            - name: SCHEMAREGISTRY_AUTH            
+          ports:
+            - name: http
+              containerPort: 9000
+              protocol: TCP
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /actuator/health
+              port: http
+              scheme: HTTP
+            initialDelaySeconds: 180
+            periodSeconds: 30
+            successThreshold: 1
+            timeoutSeconds: 10
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /actuator/health
+              port: http
+              scheme: HTTP
+            initialDelaySeconds: 20
+            periodSeconds: 5
+            successThreshold: 1
+            timeoutSeconds: 10
+          resources:
+            {}
+          volumeMounts:
+            - name: kafka-properties
+              mountPath: /config
+      volumes:
+        - name: kafka-properties
+          secret:
+            secretName: kafdrop
+            defaultMode: 420
+---
+# Source: activity-tracking/templates/kafdrop-externalsecret.yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: kafdrop-externalsecret
+spec:
+  secretStoreRef:
+    name: vault-backend
+    kind: ClusterSecretStore
+
+  target:
+    name: kafdrop
+    template:
+      engineVersion: v2
+      templateFrom:
+      - secret:
+          # name of the configmap to pull in
+          name: kafdrop
+          # here you define the keys that should be used as template
+          items:
+          - key: kafka.properties
+          - key: kafkaBootstrapServer
+  data:
+  - secretKey: kafkaBootstrapServer
+    remoteRef:
+      key: secret/data/hub/kafka
+      property: bootstrapserver
+  - secretKey: kafkaUserId
+    remoteRef:
+      key: secret/data/hub/kafka
+      property: userid
+  - secretKey: kafkaPassword
+    remoteRef:
+      key: secret/data/hub/kafka
+      property: password
+---
+# Source: activity-tracking/charts/kafdrop/templates/route.yaml
+kind: Route
+apiVersion: route.openshift.io/v1
+metadata:
+  name: kafdrop
+  labels:
+    helm.sh/chart: kafdrop-0.1.0
+    app.kubernetes.io/name: kafdrop
+    app.kubernetes.io/instance: hub-kafdrop
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: kafdrop
+spec:
+  to:
+    kind: Service
+    name: kafdrop
+    weight: 100
+  port:
+    targetPort: http
+  wildcardPolicy: None
+  tls:
+    insecureEdgeTerminationPolicy: Redirect
+    termination: edge
